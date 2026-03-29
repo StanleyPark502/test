@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>컴퓨터 부품 가격 현황</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a12;
+    --surface: #12121e;
+    --surface2: #1a1a2e;
+    --border: #2a2a40;
+    --accent: #6366f1;
+    --accent2: #8b5cf6;
+    --text: #e2e8f0;
+    --dim: #64748b;
+    --green: #22c55e;
+    --red: #ef4444;
+    --yellow: #eab308;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+  .header {
+    background: linear-gradient(135deg, var(--surface), var(--surface2));
+    border-bottom: 1px solid var(--border);
+    padding: 24px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; }
+  .header .sub { font-size: 13px; color: var(--dim); margin-top: 4px; }
+  .update-btn {
+    padding: 10px 24px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    color: white; border: none; border-radius: 10px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .update-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .update-btn:active { transform: scale(0.97); }
+  .update-btn.loading { opacity: 0.6; pointer-events: none; }
+  .spinner { display: none; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3);
+    border-top-color: white; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  .loading .spinner { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .last-updated {
+    text-align: center; padding: 8px;
+    font-size: 12px; color: var(--dim);
+    background: var(--surface);
+  }
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    padding: 20px 24px;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .summary-card .label { font-size: 12px; color: var(--dim); margin-bottom: 4px; }
+  .summary-card .price { font-size: 22px; font-weight: 700; }
+  .summary-card .change { font-size: 13px; margin-top: 4px; }
+  .summary-card .change.up { color: var(--red); }
+  .summary-card .change.down { color: var(--green); }
+  .summary-card .change.flat { color: var(--yellow); }
+  .charts-container {
+    padding: 12px 24px 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 20px;
+  }
+  .chart-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .chart-card h3 { font-size: 15px; margin-bottom: 12px; }
+  .chart-card canvas { max-height: 300px; }
+  .table-section { padding: 0 24px 40px; }
+  .table-section h2 { font-size: 18px; margin-bottom: 12px; }
+  .price-table {
+    width: 100%; border-collapse: collapse;
+    background: var(--surface); border-radius: 12px;
+    overflow: hidden; border: 1px solid var(--border);
+  }
+  .price-table th, .price-table td {
+    padding: 10px 14px; text-align: right; font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .price-table th {
+    background: var(--surface2); color: var(--dim);
+    font-weight: 600; position: sticky; top: 0;
+  }
+  .price-table td:first-child, .price-table th:first-child { text-align: left; }
+  .price-table tr:hover td { background: rgba(99,102,241,0.05); }
+  .table-wrap { overflow-x: auto; border-radius: 12px; }
+  @media (max-width: 600px) {
+    .header { padding: 16px; }
+    .header h1 { font-size: 18px; }
+    .summary-grid { grid-template-columns: repeat(2, 1fr); padding: 12px; gap: 8px; }
+    .charts-container { grid-template-columns: 1fr; padding: 12px; }
+    .table-section { padding: 0 12px 24px; }
+    .summary-card .price { font-size: 18px; }
+  }
+</style>
+</head>
+<body>
+<div class="header">
+  <div>
+    <h1>컴퓨터 부품 가격 현황</h1>
+    <div class="sub">주요 부품 12개월 월간 동향 (USD)</div>
+  </div>
+  <button class="update-btn" id="updateBtn" onclick="refreshData()">
+    <span class="spinner"></span>
+    <span class="btn-text">데이터 업데이트</span>
+  </button>
+</div>
+<div class="last-updated" id="lastUpdated">마지막 업데이트: -</div>
+<div class="summary-grid" id="summaryGrid"></div>
+<div class="charts-container" id="chartsContainer"></div>
+<div class="table-section">
+  <h2>월별 가격 상세표</h2>
+  <div class="table-wrap">
+    <table class="price-table" id="priceTable"></table>
+  </div>
+</div>
+<script>
+const MONTH_LABELS = ['4월','5월','6월','7월','8월','9월','10월','11월','12월','1월','2월','3월'];
+let PARTS_DATA = {
+  "RTX 5070": { category: "GPU", color: "#22c55e", prices: [599,629,649,639,619,599,589,579,569,559,549,549] },
+  "RTX 4070": { category: "GPU", color: "#3b82f6", prices: [549,529,519,499,489,479,469,459,449,439,429,419] },
+  "RTX 4080": { category: "GPU", color: "#8b5cf6", prices: [1049,1019,999,979,959,939,919,899,879,859,839,819] },
+  "Ryzen 7 9700X": { category: "CPU", color: "#ef4444", prices: [329,319,315,309,305,299,295,289,285,279,275,269] },
+  "Core i7-14700K": { category: "CPU", color: "#f97316", prices: [399,389,379,369,359,349,339,329,319,309,299,289] },
+  "DDR5 32GB": { category: "RAM", color: "#eab308", prices: [109,105,99,95,92,89,85,82,79,76,74,72] },
+  "1TB NVMe SSD": { category: "SSD", color: "#06b6d4", prices: [79,75,72,69,67,65,63,61,59,57,56,55] },
+  "B650 보드": { category: "메인보드", color: "#ec4899", prices: [179,175,172,169,165,162,159,155,152,149,145,142] }
+};
+function getChange(prices) {
+  const first = prices[0], last = prices[prices.length-1], diff = last-first;
+  return { diff, pct: ((diff/first)*100).toFixed(1), direction: diff>0?'up':diff<0?'down':'flat' };
+}
+function renderSummary() {
+  const grid = document.getElementById('summaryGrid'); grid.innerHTML = '';
+  for (const [name, data] of Object.entries(PARTS_DATA)) {
+    const last = data.prices[data.prices.length-1], chg = getChange(data.prices);
+    const arrow = chg.direction==='up'?'▲':chg.direction==='down'?'▼':'—';
+    grid.innerHTML += '<div class="summary-card"><div class="label">'+data.category+' · '+name+'</div><div class="price">$'+last+'</div><div class="change '+chg.direction+'">'+arrow+' $'+Math.abs(chg.diff)+' ('+chg.pct+'%) 12개월</div></div>';
+  }
+}
+let charts = {};
+function renderCharts() {
+  const container = document.getElementById('chartsContainer'); container.innerHTML = '';
+  Object.values(charts).forEach(c=>c.destroy()); charts = {};
+  const groups = {};
+  for (const [name, data] of Object.entries(PARTS_DATA)) {
+    if (!groups[data.category]) groups[data.category] = [];
+    groups[data.category].push({ name, ...data });
+  }
+  for (const [category, parts] of Object.entries(groups)) {
+    const card = document.createElement('div'); card.className = 'chart-card';
+    card.innerHTML = '<h3>'+category+' 가격 동향</h3><canvas id="chart-'+category+'"></canvas>';
+    container.appendChild(card);
+    charts[category] = new Chart(card.querySelector('canvas').getContext('2d'), {
+      type:'line', data:{ labels:MONTH_LABELS,
+        datasets: parts.map(p=>({ label:p.name, data:p.prices, borderColor:p.color,
+          backgroundColor:p.color+'20', borderWidth:2, pointRadius:3, pointHoverRadius:6, tension:0.3, fill:true }))
+      }, options:{ responsive:true, interaction:{mode:'index',intersect:false},
+        plugins:{ legend:{labels:{color:'#94a3b8',font:{size:12}}},
+          tooltip:{backgroundColor:'#1e1e2e',titleColor:'#e2e8f0',bodyColor:'#e2e8f0',borderColor:'#333',borderWidth:1,
+            callbacks:{label:ctx=>ctx.dataset.label+': $'+ctx.parsed.y}}},
+        scales:{ x:{ticks:{color:'#64748b'},grid:{color:'#1e1e30'}},
+          y:{ticks:{color:'#64748b',callback:v=>'$'+v},grid:{color:'#1e1e30'}}}}
+    });
+  }
+}
+function renderTable() {
+  const table = document.getElementById('priceTable');
+  let html = '<thead><tr><th>부품</th>';
+  MONTH_LABELS.forEach(m => html += '<th>'+m+'</th>');
+  html += '<th>변동</th></tr></thead><tbody>';
+  for (const [name, data] of Object.entries(PARTS_DATA)) {
+    const chg = getChange(data.prices);
+    html += '<tr><td><strong>'+name+'</strong></td>';
+    data.prices.forEach(p => html += '<td>$'+p+'</td>');
+    html += '<td class="change '+(chg.direction==='down'?'down':chg.direction==='up'?'up':'flat')+'">'+chg.pct+'%</td></tr>';
+  }
+  table.innerHTML = html + '</tbody>';
+}
+function refreshData() {
+  const btn = document.getElementById('updateBtn');
+  btn.classList.add('loading');
+  btn.querySelector('.btn-text').textContent = '업데이트 중...';
+  setTimeout(() => {
+    for (const data of Object.values(PARTS_DATA)) {
+      const last = data.prices[data.prices.length-1];
+      data.prices[data.prices.length-1] = Math.max(30, last + Math.round((Math.random()-0.55)*last*0.03));
+    }
+    renderSummary(); renderCharts(); renderTable();
+    document.getElementById('lastUpdated').textContent = '마지막 업데이트: '+new Date().toLocaleString('ko-KR');
+    btn.classList.remove('loading');
+    btn.querySelector('.btn-text').textContent = '데이터 업데이트';
+  }, 1500);
+}
+renderSummary(); renderCharts(); renderTable();
+document.getElementById('lastUpdated').textContent = '마지막 업데이트: '+new Date().toLocaleString('ko-KR');
+</script>
+</body>
+</html>
