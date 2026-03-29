@@ -1,101 +1,42 @@
-# Cross-Device Task Sync for Claude Code Cowork
+# PC 부품 가격 현황 대시보드
 
-갤럭시 폰에서 Claude Code cowork 작업을 생성하고 관리하는 크로스 디바이스 태스크 싱크 시스템.
+주요 PC 부품의 가격 동향을 한눈에 확인할 수 있는 대시보드.
 
-## 문제
+## 포함 부품
 
-- Claude Code의 cowork 모드는 랩탑/데스크탑 전용
-- 갤럭시 폰 Claude 앱에서는 cowork 작업 생성/관리 불가
-- 이동 중 떠오른 작업을 즉시 등록할 방법이 없음
+| 카테고리 | 제조사/필터 | 주요 제품 |
+|----------|-----------|----------|
+| **GPU** | NVIDIA / AMD | RTX 5090~5060, 40시리즈, 30시리즈, RX 9070/7900/7800 |
+| **CPU** | Intel / AMD | Arrow Lake Refresh, Core 14세대, Ryzen 9000/7000 |
+| **RAM** | DDR5 | 16GB, 32GB, 64GB, 96GB 키트 |
+| **SSD** | NVMe | 1TB, 2TB, 4TB |
+| **HDD** | - | 2TB, 4TB, 8TB |
 
-## 해결
+## 기능
 
-폰 브라우저 → 웹 UI로 작업 생성 → 랩탑 Claude Code가 작업 목록 읽기
+- **기간 선택**: 1년 / 2년 / 3년 / 5년
+- **제조사별 필터**: GPU(NVIDIA/AMD), CPU(Intel/AMD)
+- **가격 차트**: Chart.js 인터랙티브 라인 차트
+- **요약 카드**: 현재가, MSRP 대비, 기간 변동률
+- **월별 상세 테이블**
+- **시장 동향 노트**: 카테고리별 최신 시장 상황 안내
 
-```
-┌─────────────┐     HTTP/WiFi     ┌──────────────┐     파일 읽기     ┌──────────────┐
-│ 갤럭시 폰   │ ──────────────> │ Node.js 서버 │ ──────────────> │ Claude Code  │
-│ (브라우저)   │ <────────────── │ (tasks.json) │ <────────────── │ (cowork 모드) │
-└─────────────┘                  └──────────────┘                  └──────────────┘
-```
+## 데이터 출처 (2026년 3월 기준)
 
-## 빠른 시작
+- Tom's Hardware GPU/RAM/SSD Price Tracking 2026
+- TechSpot GPU Pricing Q1 2026
+- TrendForce DRAM/NAND 시세
+- Gartner 메모리 시장 전망
+- VideoCardz, WCCFTech CPU 가격 추적
 
-### 1. 서버 실행 (랩탑)
+## 주요 시장 현황 (2026년 3월)
 
-```bash
-node server.js
-```
+- **RAM**: DDR5 가격 300% 폭등. AI HBM 수요가 일반 DRAM 공급 잠식. 정상화 2027년 이후 전망
+- **SSD**: NAND 가격 246% 상승. Crucial 소비자 사업 철수. 정상화 2027~2028 전망
+- **GPU**: RTX 5090 MSRP 대비 40~75% 프리미엄. 5060/5070은 MSRP 근처
+- **HDD**: 평균 46% 상승. AI 데이터센터 수요 + 공급망 차질
 
-서버가 `http://localhost:3456` 에서 실행됩니다.
+## 사용
 
-### 2. 갤럭시 폰에서 접속
-
-랩탑과 같은 Wi-Fi에 연결된 상태에서:
-
-```
-http://<랩탑IP주소>:3456
-```
-
-랩탑 IP 확인:
-```bash
-# Linux
-hostname -I
-
-# macOS
-ipconfig getifaddr en0
-
-# Windows
-ipconfig
-```
-
-### 3. Claude Code cowork에서 사용
-
-```bash
-# 대기중인 작업 목록 보기
-node sync-to-cowork.js
-
-# 가장 높은 우선순위 작업 1개
-node sync-to-cowork.js --next
-
-# 마크다운 파일로 내보내기
-node sync-to-cowork.js --markdown
-
-# 실시간 변경 감지
-node sync-to-cowork.js --watch
-
-# 작업 시작/완료 처리
-node sync-to-cowork.js --start <task-id>
-node sync-to-cowork.js --complete <task-id>
-```
-
-## API
-
-| Method | Endpoint | 설명 |
-|--------|----------|------|
-| GET | `/api/tasks` | 전체 작업 목록 |
-| GET | `/api/tasks?status=pending` | 상태별 필터 |
-| POST | `/api/tasks` | 새 작업 생성 |
-| PUT | `/api/tasks/:id` | 작업 수정 |
-| DELETE | `/api/tasks/:id` | 작업 삭제 |
-| GET | `/api/cowork-export` | 마크다운 형식 내보내기 |
-
-### 작업 생성 예시
-
-```bash
-curl -X POST http://localhost:3456/api/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"title": "로그인 버그 수정", "priority": "high", "tags": ["bug"]}'
-```
-
-## 파일 구조
-
-```
-├── server.js           # HTTP 서버 (API + 정적 파일)
-├── sync-to-cowork.js   # Claude Code cowork 연동 스크립트
-├── tasks.json          # 작업 데이터 저장소
-├── public/
-│   └── index.html      # 모바일 웹 UI
-├── package.json
-└── README.md
-```
+`public/pc-parts-price.html` 파일을 브라우저에서 열면 됩니다.
+GitHub Pages 배포 시 별도 서버 없이 접속 가능합니다.

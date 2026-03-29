@@ -1,14 +1,5 @@
 {
-  "name": "cross-device-task-sync",
-  "version": "1.0.0",
-  "description": "갤럭시 폰에서 Claude Code cowork 작업을 생성/관리하는 크로스 디바이스 태스크 싱크",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js --dev"
-  },
-  "dependencies": {},
-  "engines": {
-    "node": ">=18.0.0"
-  }
+  "name": "pc-parts-price-dashboard",
+  "version": "2.0.0",
+  "description": "PC 주요 부품 가격 현황 대시보드 (GPU, CPU, RAM, SSD, HDD)"
 }
