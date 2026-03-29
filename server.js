@@ -59,9 +59,13 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  // Serve mobile web UI
+  // Serve static files from public/
   if (url.pathname === '/' || url.pathname === '/index.html') {
     sendFile(res, path.join(__dirname, 'public', 'index.html'), 'text/html; charset=utf-8');
+    return;
+  }
+  if (url.pathname === '/pc-parts' || url.pathname === '/pc-parts-price.html') {
+    sendFile(res, path.join(__dirname, 'public', 'pc-parts-price.html'), 'text/html; charset=utf-8');
     return;
   }
 
